@@ -13,8 +13,6 @@ import 'dotenv/config'
 
 const app = express()
 
-// Required behind a reverse proxy (Render/Heroku/Nginx) so rate-limit and
-// secure cookies see the real client IP/protocol via X-Forwarded-* headers
 if (process.env.NODE_ENV === 'production') app.set('trust proxy', 1)
 
 app.use(helmet())
@@ -26,7 +24,6 @@ app.use(express.json({ limit: '2mb' }))
 app.use(cookieParser())
 app.use(sanitizeInput)
 
-// Global rate limit — 200 requests per 15 min per IP
 app.use(rateLimit({ windowMs: 15 * 60 * 1000, max: 200, standardHeaders: true, legacyHeaders: false }))
 
 app.use('/api/auth',     authRoutes)
