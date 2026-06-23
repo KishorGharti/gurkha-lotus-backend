@@ -1,5 +1,5 @@
 import Photo from '../models/photo.models.js'
-import { uploadToCloudinary, deleteFromCloudinary } from '../utils/cloudinary.js'
+import { uploadToCloudinary, deleteFromCloudinary, warmEagerTransform, buildEagerTransforms, SLOT_BASE_WIDTH } from '../utils/cloudinary.js'
 
 const VALID_SLOTS = ['hero-1', 'hero-2', 'hero-3', 'hero-4', 'about', 'logo']
 
@@ -31,23 +31,27 @@ export const uploadPhoto = async (req, res, next) => {
       if (req.body.cropX === undefined) {
         return res.status(400).json({ success: false, message: 'No image file provided' })
       }
+      const zoom = clampNum(req.body.zoom, 1, 3, 1)
       const photo = await Photo.findOneAndUpdate(
         { slotId },
         {
           cropX: clampNum(req.body.cropX, 0, 100, 50),
           cropY: clampNum(req.body.cropY, 0, 100, 50),
-          zoom: clampNum(req.body.zoom, 1, 3, 1),
+          zoom,
         },
         { returnDocument: 'after' }
       )
       if (!photo) return res.status(404).json({ success: false, message: 'Photo not found' })
+      const baseWidth = SLOT_BASE_WIDTH[slotId]
+      if (baseWidth) warmEagerTransform(photo.publicId, buildEagerTransforms(baseWidth, zoom)).catch(() => {})
       return res.json({ success: true, data: photoOut(photo) })
     }
 
     const existing = await Photo.findOne({ slotId })
     if (existing?.publicId) await deleteFromCloudinary(existing.publicId).catch(() => {})
 
-    const result = await uploadToCloudinary(req.file.buffer, 'gurkha-lotus/photos')
+    const baseWidth = SLOT_BASE_WIDTH[slotId]
+    const result = await uploadToCloudinary(req.file.buffer, 'gurkha-lotus/photos', baseWidth ? buildEagerTransforms(baseWidth, 1) : undefined)
 
     const photo = await Photo.findOneAndUpdate(
       { slotId },
