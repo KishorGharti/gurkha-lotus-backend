@@ -4,7 +4,8 @@
   "scripts": {
     "dev": "nodemon server.js",
     "start": "node server.js",
-    "seed": "node utils/seedAdmin.js"
+    "seed": "node utils/seedAdmin.js",
+    "warm-photos": "node utils/warmPhotoTransforms.js"
   },
   "dependencies": {
     "bcrypt": "^6.0.0",
