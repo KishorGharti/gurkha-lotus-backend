@@ -9,6 +9,9 @@ const teamSchema = new mongoose.Schema({
   accentColor:   { type: String, default: '#1a3a1a' },
   photoUrl:      { type: String, default: null },
   photoPublicId: { type: String, default: null },
+  cropX:         { type: Number, default: 50, min: 0, max: 100 },
+  cropY:         { type: Number, default: 50, min: 0, max: 100 },
+  zoom:          { type: Number, default: 1, min: 1, max: 3 },
   order:         { type: Number, default: 0 },
 }, { timestamps: true })
 

@@ -7,8 +7,8 @@ const COOKIE_OPTS = {
   httpOnly: true,
   secure: process.env.NODE_ENV === 'production',
   sameSite: 'strict',
-  maxAge: 24 * 60 * 60 * 1000,
-}
+  maxAge:2 * 60 * 60 * 1000,
+  }
 
 export const login = async (req, res, next) => {
   try {
@@ -27,7 +27,7 @@ export const login = async (req, res, next) => {
       return res.status(401).json({ success: false, message: 'Invalid credentials' })
     }
 
-    const token = jwt.sign({ userId: admin._id }, process.env.JWT_SECRET, { expiresIn: '24h' })
+    const token = jwt.sign({ userId: admin._id }, process.env.JWT_SECRET, { expiresIn: '2h' })
     res.cookie('token', token, COOKIE_OPTS)
     res.status(200).json({ success: true, message: 'Login successful' })
   } catch (err) {

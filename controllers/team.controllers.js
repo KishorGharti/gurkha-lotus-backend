@@ -4,6 +4,11 @@ import { uploadToCloudinary, deleteFromCloudinary } from '../utils/cloudinary.js
 const getInitials = (name) =>
   name.split(' ').filter(w => /^[A-Za-z]/.test(w)).slice(0, 3).map(w => w[0].toUpperCase()).join('')
 
+const clampNum = (v, min, max, fallback) => {
+  const n = Number(v)
+  return Number.isFinite(n) ? Math.min(max, Math.max(min, n)) : fallback
+}
+
 export const getTeam = async (req, res, next) => {
   try {
     const team = await TeamMember.find().sort({ order: 1, createdAt: 1 })
@@ -13,7 +18,7 @@ export const getTeam = async (req, res, next) => {
 
 export const createTeamMember = async (req, res, next) => {
   try {
-    const { name, role, phone, facebook, accentColor } = req.body
+    const { name, role, phone, facebook, accentColor, cropX, cropY, zoom } = req.body
     if (!name?.trim() || !role?.trim()) {
       return res.status(400).json({ success: false, message: 'Name and role are required' })
     }
@@ -34,6 +39,9 @@ export const createTeamMember = async (req, res, next) => {
       accentColor:  accentColor || '#1a3a1a',
       photoUrl,
       photoPublicId,
+      cropX: clampNum(cropX, 0, 100, 50),
+      cropY: clampNum(cropY, 0, 100, 50),
+      zoom:  clampNum(zoom, 1, 3, 1),
     })
     res.status(201).json({ success: true, data: member })
   } catch (err) { next(err) }
@@ -41,7 +49,7 @@ export const createTeamMember = async (req, res, next) => {
 
 export const updateTeamMember = async (req, res, next) => {
   try {
-    const { name, role, phone, facebook, accentColor, removePhoto } = req.body
+    const { name, role, phone, facebook, accentColor, removePhoto, cropX, cropY, zoom } = req.body
     if (!name?.trim() || !role?.trim()) {
       return res.status(400).json({ success: false, message: 'Name and role are required' })
     }
@@ -51,6 +59,7 @@ export const updateTeamMember = async (req, res, next) => {
 
     let photoUrl = existing.photoUrl
     let photoPublicId = existing.photoPublicId
+    let position = { cropX: clampNum(cropX, 0, 100, 50), cropY: clampNum(cropY, 0, 100, 50), zoom: clampNum(zoom, 1, 3, 1) }
 
     if (req.file) {
       if (existing.photoPublicId) await deleteFromCloudinary(existing.photoPublicId).catch(() => {})
@@ -61,6 +70,7 @@ export const updateTeamMember = async (req, res, next) => {
       if (existing.photoPublicId) await deleteFromCloudinary(existing.photoPublicId).catch(() => {})
       photoUrl = null
       photoPublicId = null
+      position = { cropX: 50, cropY: 50, zoom: 1 }
     }
 
     const member = await TeamMember.findByIdAndUpdate(
@@ -69,7 +79,7 @@ export const updateTeamMember = async (req, res, next) => {
         name: name.trim().slice(0, 80), role: role.trim().slice(0, 60),
         phone: (phone || '').trim().slice(0, 30), facebook: (facebook || '').trim().slice(0, 200),
         initials: getInitials(name.trim()), accentColor: accentColor || '#1a3a1a',
-        photoUrl, photoPublicId,
+        photoUrl, photoPublicId, ...position,
       },
       { new: true }
     )
