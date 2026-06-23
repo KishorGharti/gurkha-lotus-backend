@@ -1,5 +1,6 @@
 import Photo from '../models/photo.models.js'
 import { uploadToCloudinary, deleteFromCloudinary, warmEagerTransform, buildEagerTransforms, SLOT_BASE_WIDTH } from '../utils/cloudinary.js'
+import { getPhotoCache, setPhotoCache, clearPhotoCache } from '../utils/photoCache.js'
 
 const VALID_SLOTS = ['hero-1', 'hero-2', 'hero-3', 'hero-4', 'about', 'logo']
 
@@ -12,9 +13,13 @@ const photoOut = (p) => ({ slotId: p.slotId, url: p.url, name: p.name, cropX: p.
 
 export const getPhotos = async (req, res, next) => {
   try {
-    const photos = await Photo.find()
-    const data = {}
-    photos.forEach(p => { data[p.slotId] = photoOut(p) })
+    let data = getPhotoCache()
+    if (!data) {
+      const photos = await Photo.find()
+      data = {}
+      photos.forEach(p => { data[p.slotId] = photoOut(p) })
+      setPhotoCache(data)
+    }
     res.json({ success: true, data })
   } catch (err) { next(err) }
 }
@@ -42,6 +47,7 @@ export const uploadPhoto = async (req, res, next) => {
         { returnDocument: 'after' }
       )
       if (!photo) return res.status(404).json({ success: false, message: 'Photo not found' })
+      clearPhotoCache()
       const baseWidth = SLOT_BASE_WIDTH[slotId]
       if (baseWidth) warmEagerTransform(photo.publicId, buildEagerTransforms(baseWidth, zoom)).catch(() => {})
       return res.json({ success: true, data: photoOut(photo) })
@@ -59,6 +65,7 @@ export const uploadPhoto = async (req, res, next) => {
       { upsert: true, returnDocument: 'after' }
     )
 
+    clearPhotoCache()
     res.json({ success: true, data: photoOut(photo) })
   } catch (err) { next(err) }
 }
@@ -72,6 +79,7 @@ export const deletePhoto = async (req, res, next) => {
     const photo = await Photo.findOneAndDelete({ slotId })
     if (!photo) return res.status(404).json({ success: false, message: 'Photo not found' })
     if (photo.publicId) await deleteFromCloudinary(photo.publicId).catch(() => {})
+    clearPhotoCache()
     res.json({ success: true, message: 'Photo removed' })
   } catch (err) { next(err) }
 }
