@@ -12,7 +12,10 @@ export const SLOT_BASE_WIDTH = {
   about: 900,
 }
 
-export const zoomedWidth = (baseWidth, zoom = 1) => Math.ceil((baseWidth * (zoom || 1)) / 100) * 100
+export const zoomedWidth = (baseWidth, zoom = 1) => {
+  const capped = Math.min(baseWidth * (zoom || 1), baseWidth * 1.6)
+  return Math.ceil(capped / 100) * 100
+}
 
 export const buildEagerTransforms = (baseWidth, zoom = 1) => [
   { width: zoomedWidth(baseWidth, zoom), fetch_format: 'auto', quality: 'auto', dpr: 'auto' },
